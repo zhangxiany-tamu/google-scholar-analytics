@@ -1,0 +1,55 @@
+steps:
+  # Build backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/curious-kingdom-465619-v1/scholar-backend:$COMMIT_SHA', './backend']
+    
+  # Build frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/curious-kingdom-465619-v1/scholar-frontend:$COMMIT_SHA', './frontend']
+    
+  # Push backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/curious-kingdom-465619-v1/scholar-backend:$COMMIT_SHA']
+    
+  # Push frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/curious-kingdom-465619-v1/scholar-frontend:$COMMIT_SHA']
+    
+  # Deploy backend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args: 
+      - 'run'
+      - 'deploy'
+      - 'scholar-backend'
+      - '--image=gcr.io/curious-kingdom-465619-v1/scholar-backend:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=8000'
+      - '--memory=2Gi'
+      - '--cpu=1'
+      - '--max-instances=10'
+      - '--set-env-vars=DATABASE_URL=postgresql://postgres:password@/postgres?host=/cloudsql/curious-kingdom-465619-v1:us-central1:scholar-db'
+      - '--add-cloudsql-instances=curious-kingdom-465619-v1:us-central1:scholar-db'
+      
+  # Deploy frontend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'scholar-frontend'
+      - '--image=gcr.io/curious-kingdom-465619-v1/scholar-frontend:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=3000'
+      - '--memory=1Gi'
+      - '--cpu=1'
+      - '--max-instances=5'
+      - '--set-env-vars=NEXT_PUBLIC_API_URL=https://scholar-backend-[hash]-uc.a.run.app'
+
+images:
+  - 'gcr.io/curious-kingdom-465619-v1/scholar-backend:$COMMIT_SHA'
+  - 'gcr.io/curious-kingdom-465619-v1/scholar-frontend:$COMMIT_SHA' 
