@@ -9,6 +9,10 @@ export default function Dashboard() {
   const [error, setError] = useState('')
   const router = useRouter()
 
+  const getApiUrl = () => {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  }
+
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!scholarId.trim()) return
@@ -18,7 +22,7 @@ export default function Dashboard() {
     
     try {
       // Import the profile first
-      const response = await fetch(`http://localhost:8000/api/scholar/import/${encodeURIComponent(scholarId)}`, {
+      const response = await fetch(`${getApiUrl()}/api/scholar/import/${encodeURIComponent(scholarId)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

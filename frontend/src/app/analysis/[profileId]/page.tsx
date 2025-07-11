@@ -63,13 +63,17 @@ export default function AnalysisResults() {
   const [highlightedMetrics, setHighlightedMetrics] = useState<any>(null)
   const [selectedBarData, setSelectedBarData] = useState<{year: string, citations: number} | null>(null)
 
+  const getApiUrl = () => {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  }
+
   useEffect(() => {
     const fetchAnalysis = async () => {
       if (!profileId) return
       
       setIsLoading(true)
       try {
-        const response = await fetch(`http://localhost:8000/api/analysis/${profileId}/complete`)
+        const response = await fetch(`${getApiUrl()}/api/analysis/${profileId}/complete`)
         
         if (!response.ok) {
           throw new Error(`Failed to fetch analysis: ${response.statusText}`)

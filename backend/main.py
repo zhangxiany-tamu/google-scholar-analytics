@@ -28,7 +28,12 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # Frontend URL
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost:3001",
+        "https://scholar-frontend-771064042567.us-central1.run.app",
+        "https://*.run.app"
+    ],  # Frontend URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
