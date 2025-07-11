@@ -1,0 +1,1030 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
+import Link from 'next/link'
+import ResearchAreasChart from '@/components/ResearchAreasChart'
+import CitationHistogram from '@/components/CitationHistogram'
+
+interface ProfileData {
+  id: string
+  name: string
+  affiliation?: string
+  interests: string[]
+  h_index?: number
+  i10_index?: number
+  total_citations?: number
+  profile_image_url?: string
+  citation_timeline?: {
+    cumulative_citations?: { [year: string]: number }
+    yearly_citations?: { [year: string]: number }
+    total_years?: number
+    peak_cumulative_year?: number
+    peak_cumulative_citations?: number
+    peak_yearly_year?: number
+    peak_yearly_citations?: number
+    extraction_method?: string
+    data_type?: string
+  }
+}
+
+interface AnalysisData {
+  profile_data: ProfileData
+  publications_count: number
+  analysis: {
+    basic_metrics: any
+    authorship_analysis: any
+    research_areas: any
+    citation_analysis: any
+    collaboration_analysis: any
+    productivity_analysis: any
+    venue_analysis: any
+  }
+}
+
+export default function AnalysisResults() {
+  const params = useParams()
+  const profileId = params.profileId as string
+  
+  const [data, setData] = useState<AnalysisData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [showFilterModal, setShowFilterModal] = useState(false)
+  const [filterType, setFilterType] = useState<string>('')
+  const [filterValue, setFilterValue] = useState<string>('')
+  const [filteredPapers, setFilteredPapers] = useState<any[]>([])
+  const [filterStats, setFilterStats] = useState<any>(null)
+  
+  // Author highlighting filters
+  const [highlightFirst, setHighlightFirst] = useState(false)
+  const [highlightSecond, setHighlightSecond] = useState(false)
+  const [highlightLast, setHighlightLast] = useState(false)
+  const [highlightAll, setHighlightAll] = useState(true)
+  const [highlightedMetrics, setHighlightedMetrics] = useState<any>(null)
+  const [selectedBarData, setSelectedBarData] = useState<{year: string, citations: number} | null>(null)
+
+  useEffect(() => {
+    const fetchAnalysis = async () => {
+      if (!profileId) return
+      
+      setIsLoading(true)
+      try {
+        const response = await fetch(`http://localhost:8000/api/analysis/${profileId}/complete`)
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch analysis: ${response.statusText}`)
+        }
+        
+        const analysisData = await response.json()
+        setData(analysisData)
+      } catch (err) {
+        console.error('Error fetching analysis:', err)
+        setError(err instanceof Error ? err.message : 'Failed to fetch analysis')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAnalysis()
+  }, [profileId])
+
+  // Calculate highlighted metrics based on selected filters
+  const calculateHighlightedMetrics = () => {
+    if (!data) return
+    
+    const { authorship_analysis } = data.analysis
+    const selectedCategories = []
+    
+    if (highlightAll) {
+      // Include all papers regardless of authorship
+      const allPapers: any[] = []
+      let totalCitations = 0
+      
+      Object.values(authorship_analysis).forEach((categoryData: any) => {
+        if (categoryData.papers) {
+          allPapers.push(...categoryData.papers)
+          totalCitations += categoryData.citations
+        }
+      })
+      
+      // Remove duplicates based on title
+      const uniquePapers = allPapers.filter((paper, index, self) => 
+        index === self.findIndex(p => p.title === paper.title)
+      )
+      
+      // Calculate h-index for all papers
+      const citationCounts = uniquePapers.map(p => p.citations || 0).sort((a, b) => b - a)
+      let hIndex = 0
+      for (let i = 0; i < citationCounts.length; i++) {
+        if (citationCounts[i] >= i + 1) {
+          hIndex = i + 1
+        } else {
+          break
+        }
+      }
+      
+      // Calculate i10-index for all papers
+      const i10Index = uniquePapers.filter(p => (p.citations || 0) >= 10).length
+      
+      setHighlightedMetrics({
+        papers: uniquePapers.length,
+        citations: uniquePapers.reduce((sum, p) => sum + (p.citations || 0), 0),
+        hIndex,
+        i10Index,
+        uniquePapers
+      })
+      return
+    }
+    
+    if (highlightFirst) selectedCategories.push('first_author')
+    if (highlightSecond) selectedCategories.push('second_author')
+    if (highlightLast) selectedCategories.push('last_author')
+    
+    if (selectedCategories.length === 0) {
+      setHighlightedMetrics(null)
+      return
+    }
+    
+    let totalPapers = 0
+    let totalCitations = 0
+    let allPapers: any[] = []
+    
+    selectedCategories.forEach(category => {
+      const categoryData = authorship_analysis[category]
+      if (categoryData) {
+        totalPapers += categoryData.count
+        totalCitations += categoryData.citations
+        allPapers = [...allPapers, ...(categoryData.papers || [])]
+      }
+    })
+    
+    // Remove duplicates based on title
+    const uniquePapers = allPapers.filter((paper, index, self) => 
+      index === self.findIndex(p => p.title === paper.title)
+    )
+    
+    // Calculate h-index for highlighted papers
+    const citationCounts = uniquePapers.map(p => p.citations || 0).sort((a, b) => b - a)
+    let hIndex = 0
+    for (let i = 0; i < citationCounts.length; i++) {
+      if (citationCounts[i] >= i + 1) {
+        hIndex = i + 1
+      } else {
+        break
+      }
+    }
+    
+    // Calculate i10-index for highlighted papers
+    const i10Index = uniquePapers.filter(p => (p.citations || 0) >= 10).length
+    
+    setHighlightedMetrics({
+      papers: uniquePapers.length,
+      citations: uniquePapers.reduce((sum, p) => sum + (p.citations || 0), 0),
+      hIndex,
+      i10Index,
+      uniquePapers
+    })
+  }
+  
+  useEffect(() => {
+    calculateHighlightedMetrics()
+  }, [highlightFirst, highlightSecond, highlightLast, highlightAll, data])
+
+  const handleFilterClick = (type: string, value: string) => {
+    if (!data) return
+    
+    setFilterType(type)
+    setFilterValue(value)
+    
+    let papers: any[] = []
+    let stats = { count: 0, totalCitations: 0, avgCitations: 0 }
+    
+    if (type === 'authorship') {
+      const authorshipData = data.analysis.authorship_analysis[value]
+      if (authorshipData) {
+        papers = authorshipData.papers || []
+        stats = {
+          count: authorshipData.count,
+          totalCitations: authorshipData.citations,
+          avgCitations: authorshipData.avg_citations
+        }
+      }
+    } else if (type === 'research_area') {
+      const areaData = data.analysis.research_areas.area_papers[value]
+      if (areaData) {
+        papers = areaData
+        stats = {
+          count: papers.length,
+          totalCitations: papers.reduce((sum: number, paper: any) => sum + (paper.citations || 0), 0),
+          avgCitations: papers.length > 0 ? papers.reduce((sum: number, paper: any) => sum + (paper.citations || 0), 0) / papers.length : 0
+        }
+      }
+    } else if (type === 'citation_range') {
+      // Handle citation range filters - use ALL papers, not just top papers
+      const allPapers: any[] = []
+      
+      // Collect all papers from authorship analysis
+      Object.values(data.analysis.authorship_analysis).forEach((categoryData: any) => {
+        if (categoryData.papers) {
+          allPapers.push(...categoryData.papers)
+        }
+      })
+      
+      // Remove duplicates based on title
+      const uniquePapers = allPapers.filter((paper, index, self) => 
+        index === self.findIndex(p => p.title === paper.title)
+      )
+      
+      if (value === 'highly_cited') {
+        papers = uniquePapers.filter((paper: any) => (paper.citations || 0) >= 100)
+      } else if (value === 'moderately_cited') {
+        papers = uniquePapers.filter((paper: any) => (paper.citations || 0) >= 50 && (paper.citations || 0) < 100)
+      } else if (value === 'lowly_cited') {
+        papers = uniquePapers.filter((paper: any) => (paper.citations || 0) >= 10 && (paper.citations || 0) < 50)
+      } else if (value === 'minimally_cited') {
+        papers = uniquePapers.filter((paper: any) => (paper.citations || 0) >= 1 && (paper.citations || 0) < 10)
+      }
+      
+      stats = {
+        count: papers.length,
+        totalCitations: papers.reduce((sum: number, paper: any) => sum + (paper.citations || 0), 0),
+        avgCitations: papers.length > 0 ? papers.reduce((sum: number, paper: any) => sum + (paper.citations || 0), 0) / papers.length : 0
+      }
+    }
+    
+    setFilteredPapers(papers)
+    setFilterStats(stats)
+    setShowFilterModal(true)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-lg text-gray-600">Analyzing profile... This may take a few moments.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+          <Link href="/dashboard" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            Try Again
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-600">No data available</p>
+      </div>
+    )
+  }
+
+  const { profile_data, publications_count, analysis } = data
+  const { basic_metrics, authorship_analysis, research_areas, citation_analysis, collaboration_analysis } = analysis
+
+  // Calculate correct citation counts based on our ranges
+  const calculateCitationCounts = () => {
+    const allPapers: any[] = []
+    
+    // Collect all papers from authorship analysis
+    Object.values(authorship_analysis).forEach((categoryData: any) => {
+      if (categoryData.papers) {
+        allPapers.push(...categoryData.papers)
+      }
+    })
+    
+    // Remove duplicates based on title
+    const uniquePapers = allPapers.filter((paper, index, self) => 
+      index === self.findIndex(p => p.title === paper.title)
+    )
+    
+    return {
+      highly_cited: uniquePapers.filter(p => (p.citations || 0) >= 100).length,
+      moderately_cited: uniquePapers.filter(p => (p.citations || 0) >= 50 && (p.citations || 0) < 100).length,
+      lowly_cited: uniquePapers.filter(p => (p.citations || 0) >= 10 && (p.citations || 0) < 50).length,
+      minimally_cited: uniquePapers.filter(p => (p.citations || 0) >= 1 && (p.citations || 0) < 10).length
+    }
+  }
+
+  const correctedCitationCounts = calculateCitationCounts()
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900">Analysis Results</h1>
+          <Link href="/dashboard" className="text-blue-600 hover:text-blue-800">
+            ← Analyze Another Profile
+          </Link>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex gap-8">
+          {/* Author Highlighter Sidebar */}
+          <div className="w-80 flex-shrink-0">
+            <div className="bg-white rounded-lg shadow-lg p-6 sticky top-8">
+              <h3 className="text-lg font-bold text-blue-600 mb-4">Author Highlighter</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Highlight:</h4>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={highlightAll}
+                        onChange={(e) => {
+                          setHighlightAll(e.target.checked)
+                          if (e.target.checked) {
+                            setHighlightFirst(false)
+                            setHighlightSecond(false)
+                            setHighlightLast(false)
+                          }
+                        }}
+                        className="mr-2"
+                      />
+                      All
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={highlightFirst}
+                        onChange={(e) => {
+                          setHighlightFirst(e.target.checked)
+                          if (e.target.checked) setHighlightAll(false)
+                        }}
+                        className="mr-2"
+                      />
+                      First
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={highlightSecond}
+                        onChange={(e) => {
+                          setHighlightSecond(e.target.checked)
+                          if (e.target.checked) setHighlightAll(false)
+                        }}
+                        className="mr-2"
+                      />
+                      Second
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={highlightLast}
+                        onChange={(e) => {
+                          setHighlightLast(e.target.checked)
+                          if (e.target.checked) setHighlightAll(false)
+                        }}
+                        className="mr-2"
+                      />
+                      Last
+                    </label>
+                  </div>
+                </div>
+                
+                {highlightedMetrics && (
+                  <div className="mt-6 pt-4 border-t border-gray-200">
+                    <h4 className="font-semibold text-blue-600 mb-3">Highlighted Papers Metrics</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Papers:</span>
+                        <span className="font-bold">{highlightedMetrics.papers}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Citations:</span>
+                        <span className="font-bold">{highlightedMetrics.citations}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>h-index:</span>
+                        <span className="font-bold">{highlightedMetrics.hIndex}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>i10-index:</span>
+                        <span className="font-bold">{highlightedMetrics.i10Index}</span>
+                      </div>
+                    </div>
+                    
+                    
+                    <button
+                      onClick={() => {
+                        setFilterType('highlighted')
+                        setFilterValue('selected_authorship')
+                        setFilteredPapers(highlightedMetrics.uniquePapers)
+                        setFilterStats({
+                          count: highlightedMetrics.papers,
+                          totalCitations: highlightedMetrics.citations,
+                          avgCitations: highlightedMetrics.papers > 0 ? highlightedMetrics.citations / highlightedMetrics.papers : 0
+                        })
+                        setShowFilterModal(true)
+                      }}
+                      className="w-full mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                    >
+                      VIEW ALL
+                    </button>
+                    
+                    <CitationHistogram papers={highlightedMetrics.uniquePapers} />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Main Content */}
+          <div className="flex-1">
+            {/* Profile Overview */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+          <div className="flex items-start space-x-6">
+            <div className="relative">
+              {profile_data.profile_image_url ? (
+                <>
+                  <img 
+                    src={profile_data.profile_image_url} 
+                    alt={profile_data.name}
+                    className="w-20 h-20 rounded-full object-contain border-2 border-gray-200 shadow-lg"
+                    style={{ 
+                      imageResolution: 'from-image',
+                      filter: 'contrast(1.05) saturate(1.1)'
+                    }}
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      const currentSrc = img.src;
+                      
+                      // Try alternative high-quality URLs if the current one fails
+                      if (currentSrc.includes('&s=800')) {
+                        // Try without size parameter first
+                        img.src = currentSrc.split('&s=')[0];
+                      } else if (currentSrc.includes('citations?view_op=view_photo') && !currentSrc.includes('&s=')) {
+                        // Try with different size parameter
+                        img.src = currentSrc + '&sz=512';
+                      } else if (currentSrc.includes('&sz=512')) {
+                        // Try with alternative format
+                        img.src = currentSrc.replace('&sz=512', '&s=400');
+                      } else {
+                        // Final fallback - hide image
+                        img.style.display = 'none';
+                      }
+                    }}
+                    onLoad={(e) => {
+                      // Ensure proper display and quality
+                      const img = e.currentTarget;
+                      img.style.display = 'block';
+                      // Log actual dimensions for debugging
+                      console.log(`Profile image loaded: ${img.naturalWidth}x${img.naturalHeight}`);
+                    }}
+                  />
+                  {/* Fallback avatar if image fails */}
+                  <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center border-2 border-gray-200 shadow-lg absolute top-0 left-0 -z-10">
+                    <span className="text-2xl font-bold text-blue-600">
+                      {profile_data.name?.charAt(0)?.toUpperCase() || '?'}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                /* Default avatar when no image URL */
+                <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center border-2 border-gray-200 shadow-lg">
+                  <span className="text-2xl font-bold text-blue-600">
+                    {profile_data.name?.charAt(0)?.toUpperCase() || '?'}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">{profile_data.name}</h2>
+              {profile_data.affiliation && (
+                <p className="text-lg text-gray-600 mb-3">{profile_data.affiliation}</p>
+              )}
+              {profile_data.interests.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {profile_data.interests.map((interest, index) => (
+                    <span key={index} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                      {interest}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-6 text-center">
+            <div className="text-3xl font-bold text-black mb-2">
+              {basic_metrics?.total_publications || 0}
+            </div>
+            <div className="text-gray-600">Publications</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6 text-center">
+            <div className="text-3xl font-bold text-black mb-2">
+              {basic_metrics?.total_citations || 0}
+            </div>
+            <div className="text-gray-600">Citations</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6 text-center">
+            <div className="text-3xl font-bold text-black mb-2">
+              {basic_metrics?.h_index || 0}
+            </div>
+            <div className="text-gray-600">h-index</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6 text-center">
+            <div className="text-3xl font-bold text-black mb-2">
+              {basic_metrics?.i10_index || 0}
+            </div>
+            <div className="text-gray-600">i10-index</div>
+          </div>
+        </div>
+
+        {/* Analysis Sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* Authorship Analysis */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Authorship Analysis</h3>
+            <div className="space-y-4">
+              {authorship_analysis && Object.entries(authorship_analysis)
+                .filter(([role]) => !['corresponding_author', 'unknown'].includes(role))
+                .map(([role, data]: [string, any]) => (
+                <div key={role} className="border-b border-gray-200 pb-3">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <span className="font-medium capitalize">{role.replace('_', ' ')}</span>
+                      <span className="text-sm text-gray-500 ml-2">({data.percentage}%)</span>
+                    </div>
+                    <button
+                      onClick={() => handleFilterClick('authorship', role)}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      View Papers →
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <div className="font-bold text-lg">{data.count}</div>
+                      <div className="text-gray-500">Papers</div>
+                    </div>
+                    <div>
+                      <div className="font-bold text-lg text-blue-600">{data.citations}</div>
+                      <div className="text-gray-500">Total Citations</div>
+                    </div>
+                    <div>
+                      <div className="font-bold text-lg">{data.avg_citations}</div>
+                      <div className="text-gray-500">Avg Citations</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+            </div>
+          </div>
+
+          {/* Research Areas */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Research Areas</h3>
+            </div>
+            {research_areas?.area_percentages ? (
+              <div>
+                <ResearchAreasChart data={research_areas.area_percentages} />
+                <div className="mt-4 space-y-2">
+                  {Object.keys(research_areas.area_percentages).slice(0, 3).map((area) => (
+                    <button
+                      key={area}
+                      onClick={() => handleFilterClick('research_area', area)}
+                      className="block w-full text-left text-sm bg-blue-50 text-blue-700 px-3 py-2 rounded hover:bg-blue-100 transition-colors"
+                    >
+                      View {area.replace('_', ' ')} papers →
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-gray-500 text-center py-8">
+                No research area data available
+              </div>
+            )}
+          </div>
+
+          {/* Citation Analysis */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-6">Citation Analysis</h3>
+            
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 gap-6 mb-6">
+              <div className="text-center bg-blue-50 rounded-lg p-4">
+                <div className="text-3xl font-bold text-blue-600">
+                  {citation_analysis?.avg_citations || 0}
+                </div>
+                <div className="text-sm text-gray-600 mt-1">Average Citations</div>
+              </div>
+              <div className="text-center bg-blue-50 rounded-lg p-4">
+                <div className="text-3xl font-bold text-blue-600">
+                  {citation_analysis?.max_citations || 0}
+                </div>
+                <div className="text-sm text-gray-600 mt-1">Maximum Citations</div>
+              </div>
+            </div>
+
+            {/* Citation Ranges */}
+            <div className="space-y-3">
+              <h4 className="text-lg font-semibold text-gray-700">Papers by Citation Range</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="cursor-pointer hover:bg-gray-50 p-3 rounded-lg border transition-colors" onClick={() => handleFilterClick('citation_range', 'highly_cited')}>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="text-lg font-bold text-black">
+                        {correctedCitationCounts.highly_cited}
+                      </div>
+                      <div className="text-sm text-gray-600">Highly Cited (100+)</div>
+                    </div>
+                    <div className="text-xs text-blue-600">View →</div>
+                  </div>
+                </div>
+                <div className="cursor-pointer hover:bg-gray-50 p-3 rounded-lg border transition-colors" onClick={() => handleFilterClick('citation_range', 'moderately_cited')}>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="text-lg font-bold text-gray-600">
+                        {correctedCitationCounts.moderately_cited}
+                      </div>
+                      <div className="text-sm text-gray-600">Moderately Cited (50-99)</div>
+                    </div>
+                    <div className="text-xs text-blue-600">View →</div>
+                  </div>
+                </div>
+                <div className="cursor-pointer hover:bg-gray-50 p-3 rounded-lg border transition-colors" onClick={() => handleFilterClick('citation_range', 'lowly_cited')}>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="text-lg font-bold text-gray-600">
+                        {correctedCitationCounts.lowly_cited}
+                      </div>
+                      <div className="text-sm text-gray-600">Lowly Cited (10-49)</div>
+                    </div>
+                    <div className="text-xs text-blue-600">View →</div>
+                  </div>
+                </div>
+                <div className="cursor-pointer hover:bg-gray-50 p-3 rounded-lg border transition-colors" onClick={() => handleFilterClick('citation_range', 'minimally_cited')}>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="text-lg font-bold text-gray-600">
+                        {correctedCitationCounts.minimally_cited}
+                      </div>
+                      <div className="text-sm text-gray-600">Minimally Cited (1-9)</div>
+                    </div>
+                    <div className="text-xs text-blue-600">View →</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Collaboration Overview */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Collaboration Overview</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span>Unique Collaborators</span>
+                <span className="font-bold">{collaboration_analysis?.total_unique_collaborators || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Collaboration Rate</span>
+                <span className="font-bold">{collaboration_analysis?.collaboration_rate || 0}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Avg Authors per Paper</span>
+                <span className="font-bold">{collaboration_analysis?.avg_authors_per_paper || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Solo Papers</span>
+                <span className="font-bold">{collaboration_analysis?.solo_papers || 0}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Co-Author Analysis */}
+        {collaboration_analysis?.top_collaborators && (
+          <div className="bg-white rounded-lg shadow-lg p-6 mt-8">
+            <h3 className="text-xl font-bold text-gray-900 mb-6">Co-Author Analysis</h3>
+            
+            {/* Collaboration Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="text-center bg-blue-50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-blue-600">
+                  {collaboration_analysis.core_collaborators || 0}
+                </div>
+                <div className="text-sm text-gray-600 mt-1">Core Collaborators (3+ papers)</div>
+              </div>
+              <div className="text-center bg-blue-50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-blue-600">
+                  {collaboration_analysis.occasional_collaborators || 0}
+                </div>
+                <div className="text-sm text-gray-600 mt-1">Occasional Collaborators (1 paper)</div>
+              </div>
+              <div className="text-center bg-blue-50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-blue-600">
+                  {collaboration_analysis.collaboration_intensity || 0}
+                </div>
+                <div className="text-sm text-gray-600 mt-1">Avg Co-authors per Collaborative Paper</div>
+              </div>
+            </div>
+
+            {/* Top Collaborators */}
+            <div>
+              <h4 className="text-lg font-semibold text-gray-700 mb-4">Top Collaborators</h4>
+              <div className="space-y-4">
+                {collaboration_analysis.top_collaborators.slice(0, 10).map(([name, data]: [string, any], index: number) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h5 className="font-medium text-gray-900 mb-2">{name}</h5>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-500">Papers:</span>
+                            <span className="font-semibold ml-1">{data.collaboration_count}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Citations:</span>
+                            <span className="font-semibold ml-1">{data.total_citations}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Avg Citations:</span>
+                            <span className="font-semibold ml-1">{data.avg_citations}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Years Active:</span>
+                            <span className="font-semibold ml-1">
+                              {data.years_active && data.years_active.length > 0 ? 
+                                `${Math.min(...data.years_active)}-${Math.max(...data.years_active)}` : 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setFilterType('coauthor')
+                          setFilterValue(name)
+                          setFilteredPapers(data.papers || [])
+                          setFilterStats({
+                            count: data.collaboration_count,
+                            totalCitations: data.total_citations,
+                            avgCitations: data.avg_citations
+                          })
+                          setShowFilterModal(true)
+                        }}
+                        className="ml-4 text-blue-600 hover:text-blue-800 text-sm font-medium whitespace-nowrap"
+                      >
+                        View Papers →
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Top Papers */}
+        {citation_analysis?.top_papers && (
+          <div className="bg-white rounded-lg shadow-lg p-6 mt-8">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Top Cited Papers</h3>
+            <div className="space-y-4">
+              {citation_analysis.top_papers.slice(0, 5).map((paper: any, index: number) => (
+                <div key={index} className="border-l-4 border-blue-500 pl-4">
+                  <h4 className="font-medium text-gray-900">{paper[0]}</h4>
+                  <div className="flex justify-between text-sm text-gray-600 mt-1">
+                    <span>Year: {paper[2] && paper[2] !== null ? paper[2] : 'Not specified'}</span>
+                    <span className="font-semibold">{paper[1]} citations</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Citation Timeline Analysis Panel */}
+        {data?.profile_data.citation_timeline && (
+          <div className="bg-white rounded-lg shadow-lg p-6 mt-8">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Citation Timeline Analysis</h3>
+            
+            {/* Citation Timeline Chart */}
+            <div className="w-full">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-800 mb-4">Annual Citation Counts</h4>
+                  {data.profile_data.citation_timeline?.yearly_citations && (
+                    <div className="relative">
+                      {/* Chart container with fixed height */}
+                      <div className="w-full bg-white rounded border border-gray-200 p-4" style={{ height: '300px' }}>
+                        <div className="relative w-full" style={{ height: '240px' }}>
+                          <div className="absolute inset-0 flex items-end justify-between">
+                            {Object.entries(data.profile_data.citation_timeline.yearly_citations)
+                              .sort(([a], [b]) => parseInt(a) - parseInt(b))
+                              .map(([year, citations]) => {
+                                const maxCitations = Math.max(...Object.values(data.profile_data.citation_timeline?.yearly_citations!));
+                                const heightPx = Math.max((citations / maxCitations) * 220, 4); // Fixed pixel height, min 4px
+                                const isCurrentYear = year === '2025';
+                                const isPeakYear = year === data.profile_data.citation_timeline?.peak_yearly_year?.toString();
+                                
+                                return (
+                                  <div key={year} className="flex flex-col items-center" style={{ width: `${100 / Object.keys(data.profile_data.citation_timeline?.yearly_citations!).length}%` }}>
+                                    <div className="flex flex-col items-center w-full">
+                                      {/* Bar with fixed pixel height */}
+                                      <div 
+                                        className={`w-3/4 transition-all duration-200 cursor-pointer ${
+                                          isPeakYear 
+                                            ? 'bg-red-500 hover:bg-red-600' 
+                                            : isCurrentYear 
+                                              ? 'bg-orange-500 hover:bg-orange-600'
+                                              : 'bg-blue-500 hover:bg-blue-600'
+                                        }`}
+                                        style={{ 
+                                          height: `${heightPx}px`,
+                                          marginBottom: '8px'
+                                        }}
+                                        title={`${year}: ${citations} citations`}
+                                        onClick={() => setSelectedBarData({ year, citations })}
+                                      >
+                                      </div>
+                                      
+                                      {/* Year label */}
+                                      <div className="text-xs text-gray-600 text-center">
+                                        {year}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Selected bar data display */}
+                      {selectedBarData && (
+                        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="text-center">
+                            <span className="text-lg font-semibold text-blue-800">
+                              {selectedBarData.year}: {selectedBarData.citations} citations
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Legend */}
+                      <div className="flex justify-center gap-6 mt-4 text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-blue-500"></div>
+                          <span>Regular Years</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-red-500"></div>
+                          <span>Peak Year</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-orange-500"></div>
+                          <span>Current Year</span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-center mt-2 text-xs text-gray-500">
+                        Click on any bar to see exact citation numbers
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Filter Modal */}
+        {showFilterModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              <div className="p-6 border-b">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      {filterType === 'authorship' ? `${filterValue.replace('_', ' ')} Papers` :
+                       filterType === 'research_area' ? `${filterValue.replace('_', ' ')} Research` :
+                       filterType === 'citation_range' ? `${filterValue.replace('_', ' ')} Papers` :
+                       filterType === 'combined' ? `${filterValue === 'first_last_author' ? 'First + Last Author' : 'Single + Middle Author'} Papers` :
+                       filterType === 'highlighted' ? 'Highlighted Papers' :
+                       filterType === 'coauthor' ? `Papers with ${filterValue}` : 'Filtered Papers'}
+                    </h2>
+                    {filterStats && (
+                      <div className="flex space-x-6 mt-2 text-sm text-gray-600">
+                        <span><strong>{filterStats.count}</strong> papers</span>
+                        <span><strong>{filterStats.totalCitations}</strong> total citations</span>
+                        <span><strong>{filterStats.avgCitations.toFixed(1)}</strong> avg citations</span>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setShowFilterModal(false)}
+                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+                <div className="space-y-4">
+                  {filteredPapers.map((paper, index) => (
+                    <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                      <h4 className="font-medium text-gray-900 mb-2">
+                        {paper.title}
+                      </h4>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <div className="flex justify-between">
+                          <span>Year: {paper.year || 'Not specified'}</span>
+                          <span className="font-semibold text-blue-600">
+                            {paper.citations || 0} citations
+                          </span>
+                        </div>
+                        {paper.venue && (
+                          <div className="text-gray-700 flex items-center gap-2">
+                            <span className="font-medium">
+                              {paper.venue_type === 'conference' ? 'Conference:' : 
+                               paper.venue_type === 'preprint' ? 'Preprint:' : 
+                               paper.venue_type === 'journal' ? 'Journal:' : 'Venue:'}
+                            </span> 
+                            <span className="flex-1">{paper.venue}</span>
+                            {paper.classification_method === 'journal' && (
+                              <div className="flex items-center gap-1">
+                                <div className="w-2 h-2 bg-green-500 rounded-full" title="Journal-based classification"></div>
+                                <span className="text-xs text-green-600">Journal</span>
+                              </div>
+                            )}
+                            {paper.classification_method === 'conference' && (
+                              <div className="flex items-center gap-1">
+                                <div className="w-2 h-2 bg-blue-600 rounded-full" title="Conference-based classification"></div>
+                                <span className="text-xs text-blue-600">Conference</span>
+                              </div>
+                            )}
+                            {paper.classification_method === 'preprint' && (
+                              <div className="flex items-center gap-1">
+                                <div className="w-2 h-2 bg-gray-500 rounded-full" title="Preprint server"></div>
+                                <span className="text-xs text-gray-600">Preprint</span>
+                              </div>
+                            )}
+                            {paper.classification_method === 'keyword' && (
+                              <div className="flex items-center gap-1">
+                                <div className="w-2 h-2 bg-purple-500 rounded-full" title="Keyword-based classification"></div>
+                                <span className="text-xs text-purple-600">Keyword</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {paper.keywords && (
+                        <div className="mt-2">
+                          <div className="flex flex-wrap gap-1">
+                            {paper.keywords.map((keyword: string, i: number) => (
+                              <span key={i} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                                {keyword}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {filteredPapers.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      No papers found for this filter.
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="p-6 border-t bg-gray-50">
+                <button
+                  onClick={() => setShowFilterModal(false)}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
