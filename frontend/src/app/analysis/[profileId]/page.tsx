@@ -64,7 +64,7 @@ export default function AnalysisResults() {
   const [selectedBarData, setSelectedBarData] = useState<{year: string, citations: number} | null>(null)
 
   const getApiUrl = () => {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
   }
 
   useEffect(() => {
@@ -605,17 +605,6 @@ export default function AnalysisResults() {
             {research_areas?.area_percentages ? (
               <div>
                 <ResearchAreasChart data={research_areas.area_percentages} />
-                <div className="mt-4 space-y-2">
-                  {Object.keys(research_areas.area_percentages).slice(0, 3).map((area) => (
-                    <button
-                      key={area}
-                      onClick={() => handleFilterClick('research_area', area)}
-                      className="block w-full text-left text-sm bg-blue-50 text-blue-700 px-3 py-2 rounded hover:bg-blue-100 transition-colors"
-                    >
-                      View {area.replace('_', ' ')} papers →
-                    </button>
-                  ))}
-                </div>
               </div>
             ) : (
               <div className="text-gray-500 text-center py-8">

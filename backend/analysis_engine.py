@@ -7,6 +7,7 @@ from datetime import datetime
 import statistics
 from semantic_scholar_api import SemanticScholarClassifier
 from journal_cache import JournalCache
+from conference_cache import ConferenceCache
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ class ProfileAnalyzer:
         self.journal_classifications = {}  # journal_name -> classification
         self.venue_types = {}  # venue_name -> 'journal' or 'conference'
         self.journal_cache = JournalCache()
+        self.conference_cache = ConferenceCache()
         self._load_journal_classifications()
         
         # Keyword-based classification as fallback
@@ -1024,13 +1026,19 @@ class ProfileAnalyzer:
         return authorship_stats
     
     def _parse_authors(self, authors_string: str) -> List[str]:
-        """Parse author string into list of individual authors"""
+        """Parse author string into list of individual authors, handling truncation"""
         if not authors_string:
             return []
         
+        # Check for truncation indicators
+        is_truncated = self._is_author_list_truncated(authors_string)
+        
+        # Remove truncation indicators before parsing
+        clean_authors_string = self._clean_truncation_markers(authors_string)
+        
         # Common separators - improved regex for better parsing
         # Split on comma, semicolon, or ' and ' (but not 'and' within names)
-        authors = re.split(r',|;|\s+and\s+', authors_string)
+        authors = re.split(r',|;|\s+and\s+', clean_authors_string)
         authors = [author.strip() for author in authors if author.strip()]
         
         # Further clean up each author name
@@ -1042,14 +1050,64 @@ class ProfileAnalyzer:
             if author.strip():
                 cleaned_authors.append(author.strip())
         
+        # Store truncation info for later use
+        if is_truncated:
+            cleaned_authors.append('__TRUNCATED__')  # Marker for truncated list
+        
         return cleaned_authors
     
+    def _is_author_list_truncated(self, authors_string: str) -> bool:
+        """Check if the author list is truncated"""
+        truncation_indicators = [
+            '...', '…', 'et al', 'et al.', 'and others', 
+            'and more', '+ more', '+ others', 'etc'
+        ]
+        
+        authors_lower = authors_string.lower()
+        
+        # Check for simple indicators
+        if any(indicator in authors_lower for indicator in truncation_indicators):
+            return True
+        
+        # Check for pattern "+ N more" where N is a number
+        import re
+        if re.search(r'\+\s*\d+\s*more', authors_lower):
+            return True
+        
+        return False
+    
+    def _clean_truncation_markers(self, authors_string: str) -> str:
+        """Remove truncation markers from author string"""
+        # Remove common truncation indicators
+        truncation_patterns = [
+            r'\.\.\..*$',  # Everything after ...
+            r'….*$',       # Everything after ellipsis
+            r'\bet\s+al\.?.*$',  # Everything after "et al"
+            r'\band\s+others.*$',  # Everything after "and others"
+            r'\band\s+more.*$',   # Everything after "and more"
+            r'\+\s*\d+\s*more.*$', # Everything after "+ N more"
+            r'\+\s*others.*$',    # Everything after "+ others"
+            r'\betc\.?.*$'        # Everything after "etc"
+        ]
+        
+        cleaned = authors_string
+        for pattern in truncation_patterns:
+            cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE)
+        
+        return cleaned.strip().rstrip(',').strip()
+    
     def _determine_author_position(self, profile_name: str, name_parts: List[str], author_list: List[str]) -> str:
-        """Determine the position of the profile owner in the author list"""
+        """Determine the position of the profile owner in the author list, handling truncation"""
         if not author_list:
             return 'unknown'
         
-        if len(author_list) == 1:
+        # Check if the list is truncated
+        is_truncated = '__TRUNCATED__' in author_list
+        if is_truncated:
+            # Remove the truncation marker for processing
+            author_list = [author for author in author_list if author != '__TRUNCATED__']
+        
+        if len(author_list) == 1 and not is_truncated:
             return 'single_author'
         
         # Find the profile owner in the author list
@@ -1122,12 +1180,17 @@ class ProfileAnalyzer:
             logger.warning(f"Name parts: {name_parts}")
             return 'unknown'
         
+        # Determine position with truncation awareness
         if profile_index == 0:
             return 'first_author'
         elif profile_index == 1:
             return 'second_author'
-        elif profile_index == len(author_list) - 1:
+        elif profile_index == len(author_list) - 1 and not is_truncated:
+            # Only consider as last author if the list is NOT truncated
             return 'last_author'
+        elif profile_index == len(author_list) - 1 and is_truncated:
+            # If truncated and at the end of visible list, it's middle author
+            return 'middle_author'
         else:
             return 'middle_author'
     
@@ -1173,25 +1236,33 @@ class ProfileAnalyzer:
             matched_journal = None
             classification_method = None
             
-            # Try journal-based classification first if venue exists
+            # Try venue-based classification (prioritize conferences over journals)
             if venue:
                 venue_lower = venue.lower()
                 
-                # Direct lookup first
-                if venue_lower in self.journal_classifications:
+                # STEP 1: Check conference database first (highest priority)
+                conference_result = self.conference_cache.get_conference_classification(venue_lower)
+                if conference_result:
+                    paper_domains = [conference_result['domain']]
+                    matched_journal = conference_result['name'].lower()
+                    classification_method = 'conference'
+                    logger.info(f"Conference match: '{venue}' -> '{conference_result['name']}' -> {paper_domains}")
+                
+                # STEP 2: If no conference match, try journal classification
+                elif venue_lower in self.journal_classifications:
                     paper_domains = self.journal_classifications[venue_lower]
                     matched_journal = venue_lower
                     classification_method = 'journal'
-                    logger.info(f"Direct match: '{venue}' -> {paper_domains}")
+                    logger.info(f"Direct journal match: '{venue}' -> {paper_domains}")
                 else:
-                    # SYSTEMATIC FUZZY MATCHING with proper quality control
+                    # STEP 3: SYSTEMATIC FUZZY MATCHING with proper quality control
                     match_result = self._find_best_journal_match(venue_lower)
                     if match_result:
                         paper_domains, matched_journal = match_result
                         classification_method = 'journal'
-                        logger.info(f"Fuzzy match: '{venue}' -> '{matched_journal}' -> {paper_domains}")
+                        logger.info(f"Fuzzy journal match: '{venue}' -> '{matched_journal}' -> {paper_domains}")
                     else:
-                        logger.warning(f"No journal match for venue: '{venue}'")
+                        logger.warning(f"No venue match for: '{venue}'")
             
             # If no journal match or no venue, fall back to keyword matching
             if not paper_domains:
@@ -1203,8 +1274,11 @@ class ProfileAnalyzer:
             
             # Add paper to results - each paper can contribute to multiple domains
             if paper_domains:
-                # Determine venue type
-                venue_type = self._determine_venue_type(venue, matched_journal)
+                # Determine venue type based on classification method
+                if classification_method == 'conference':
+                    venue_type = 'conference'
+                else:
+                    venue_type = self._determine_venue_type(venue, matched_journal)
                 
                 # Adjust classification method based on venue type
                 if venue_type == 'preprint':
@@ -1419,6 +1493,8 @@ class ProfileAnalyzer:
         
         for pub in publications:
             authors = self._parse_authors(pub.get('authors', ''))
+            # Filter out truncation markers for frequency analysis
+            authors = [author for author in authors if author != '__TRUNCATED__']
             for author in authors:
                 author_freq_all[author] += 1
         
@@ -1426,8 +1502,18 @@ class ProfileAnalyzer:
         if author_freq_all:
             profile_owner = author_freq_all.most_common(1)[0][0]
         
+        truncated_papers_count = 0
+        
         for pub in publications:
             authors = self._parse_authors(pub.get('authors', ''))
+            
+            # Check if this paper's author list was truncated
+            is_truncated = '__TRUNCATED__' in authors
+            if is_truncated:
+                truncated_papers_count += 1
+                # Remove truncation marker for processing
+                authors = [author for author in authors if author != '__TRUNCATED__']
+            
             num_authors = len(authors)
             citations = pub.get('citation_count', 0)
             
@@ -1442,7 +1528,8 @@ class ProfileAnalyzer:
                         'year': pub.get('year'),
                         'citations': citations,
                         'venue': pub.get('venue', ''),
-                        'total_authors': num_authors
+                        'total_authors': num_authors,
+                        'truncated': is_truncated  # Mark if author list was truncated
                     })
                     coauthor_citations[coauthor] += citations
             
@@ -1500,7 +1587,9 @@ class ProfileAnalyzer:
             'top_collaborators': [(name, data) for name, data in top_collaborators],
             'coauthor_details': dict(coauthor_analysis),
             'collaboration_networks': self._analyze_collaboration_networks(coauthor_papers),
-            'profile_owner': profile_owner
+            'profile_owner': profile_owner,
+            'truncated_papers': truncated_papers_count,
+            'truncation_rate': round(truncated_papers_count / total_papers * 100, 1) if total_papers > 0 else 0
         }
     
     def _calculate_collaboration_span(self, papers: List[Dict]) -> int:
