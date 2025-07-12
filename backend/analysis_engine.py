@@ -1047,8 +1047,10 @@ class ProfileAnalyzer:
             # Remove common prefixes/suffixes
             author = re.sub(r'^(Dr\.?|Prof\.?|Mr\.?|Ms\.?|Mrs\.?)\s+', '', author)
             author = re.sub(r'\s+(Jr\.?|Sr\.?|III?|IV)$', '', author)
-            if author.strip():
-                cleaned_authors.append(author.strip())
+            author = author.strip()
+            # Filter out truncation indicators that might have escaped cleaning
+            if author and author not in ['...', '…', 'et al', 'et al.', 'and others', 'and more', 'etc']:
+                cleaned_authors.append(author)
         
         # Store truncation info for later use
         if is_truncated:
