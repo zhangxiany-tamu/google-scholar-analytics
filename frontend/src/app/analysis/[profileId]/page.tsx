@@ -64,7 +64,7 @@ export default function AnalysisResults() {
   const [selectedBarData, setSelectedBarData] = useState<{year: string, citations: number} | null>(null)
 
   const getApiUrl = () => {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
   }
 
   useEffect(() => {

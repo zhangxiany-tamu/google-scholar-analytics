@@ -14,10 +14,44 @@ import re
 from urllib.parse import unquote
 from scholar_scraper import GoogleScholarScraper
 from analysis_engine import ProfileAnalyzer
+from cache_manager import (
+    cache_publications, get_cached_publications,
+    cache_analysis, get_cached_analysis,
+    cache_profile, get_cached_profile,
+    cache_manager
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+async def get_publications_data(profile_id: str, user_id: str) -> List[Dict]:
+    """Helper function to get publications data with caching"""
+    # Try cache first
+    publications_data = get_cached_publications(profile_id)
+    if publications_data:
+        logger.info(f"📥 Using cached publications for {profile_id}")
+        return publications_data
+    
+    logger.info(f"📤 Scraping publications for {profile_id}")
+    scraper = GoogleScholarScraper()
+    
+    # Scrape publications using concurrent method with fallback
+    loop = asyncio.get_event_loop()
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        try:
+            # Try concurrent scraping first
+            publications_data = await loop.run_in_executor(executor, scraper.scrape_publications, user_id, 200)
+        except Exception as e:
+            logger.warning(f"Concurrent scraping failed, falling back to legacy method: {str(e)}")
+            # Fallback to sequential scraping
+            publications_data = await loop.run_in_executor(executor, scraper.scrape_publications_legacy, user_id, 200)
+    
+    # Cache the result
+    cache_publications(profile_id, publications_data, ttl=1800)
+    logger.info(f"💾 Cached publications for {profile_id}: {len(publications_data)} items")
+    
+    return publications_data
 
 app = FastAPI(
     title="Google Scholar Profile Analyzer API",
@@ -31,6 +65,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000", 
         "http://localhost:3001",
+        "http://localhost:3002",
         "https://scholar-frontend-771064042567.us-central1.run.app",
         "https://*.run.app"
     ],  # Frontend URLs
@@ -177,9 +212,29 @@ async def get_scholar_profile(profile_id: str):
 
 @app.get("/api/publications/{profile_id}", response_model=List[Publication])
 async def get_publications(profile_id: str):
-    """Get publications for a profile"""
+    """Get publications for a profile with caching"""
     try:
         logger.info(f"Fetching publications for profile: {profile_id}")
+        
+        # Check cache first
+        cached_publications = get_cached_publications(profile_id)
+        if cached_publications:
+            logger.info(f"📥 Cache HIT: Publications for {profile_id}")
+            # Convert cached data to response format
+            publications = []
+            for i, pub in enumerate(cached_publications):
+                publications.append(Publication(
+                    id=f"pub_{i+1}",
+                    title=pub.get('title', ''),
+                    authors=pub.get('authors', ''),
+                    venue=pub.get('venue', ''),
+                    year=pub.get('year'),
+                    citation_count=pub.get('citation_count', 0),
+                    google_scholar_url=pub.get('google_scholar_url', '')
+                ))
+            return publications
+        
+        logger.info(f"📤 Cache MISS: Scraping publications for {profile_id}")
         
         # Extract user ID from profile ID
         user_id = profile_id.replace('profile_', '')
@@ -187,10 +242,21 @@ async def get_publications(profile_id: str):
         # Initialize scraper
         scraper = GoogleScholarScraper()
         
-        # Scrape publications
+        # Scrape publications using concurrent method with fallback
         loop = asyncio.get_event_loop()
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            publications_data = await loop.run_in_executor(executor, scraper.scrape_publications, user_id, 200)
+            try:
+                # Try concurrent scraping first
+                logger.info("Using concurrent scraping method")
+                publications_data = await loop.run_in_executor(executor, scraper.scrape_publications, user_id, 200)
+            except Exception as e:
+                logger.warning(f"Concurrent scraping failed, falling back to legacy method: {str(e)}")
+                # Fallback to sequential scraping
+                publications_data = await loop.run_in_executor(executor, scraper.scrape_publications_legacy, user_id, 200)
+        
+        # Cache the raw publication data
+        cache_publications(profile_id, publications_data, ttl=1800)  # 30 minutes
+        logger.info(f"💾 Cached publications for {profile_id}: {len(publications_data)} items")
         
         # Convert to response format
         publications = []
@@ -216,9 +282,22 @@ async def get_publications(profile_id: str):
 
 @app.get("/api/analysis/{profile_id}/overview", response_model=AnalysisResult)
 async def get_analysis_overview(profile_id: str):
-    """Get overview analysis for a profile"""
+    """Get overview analysis for a profile with caching"""
     try:
         logger.info(f"Generating analysis overview for profile: {profile_id}")
+        
+        # Check cache first
+        cached_analysis = get_cached_analysis(profile_id, "overview")
+        if cached_analysis:
+            logger.info(f"📥 Cache HIT: Overview analysis for {profile_id}")
+            return AnalysisResult(
+                profile_id=profile_id,
+                analysis_type="overview",
+                results=cached_analysis,
+                computed_at=datetime.now()
+            )
+        
+        logger.info(f"📤 Cache MISS: Computing overview analysis for {profile_id}")
         
         # Extract user ID from profile ID
         user_id = profile_id.replace('profile_', '')
@@ -227,11 +306,29 @@ async def get_analysis_overview(profile_id: str):
         scraper = GoogleScholarScraper()
         analyzer = ProfileAnalyzer()
         
-        # Get profile and publications data
-        loop = asyncio.get_event_loop()
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            profile_data = await loop.run_in_executor(executor, scraper.scrape_profile, user_id)
-            publications_data = await loop.run_in_executor(executor, scraper.scrape_publications, user_id, 200)
+        # Try to get cached publications first
+        publications_data = get_cached_publications(profile_id)
+        if not publications_data:
+            # Get profile and publications data
+            loop = asyncio.get_event_loop()
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                profile_data = await loop.run_in_executor(executor, scraper.scrape_profile, user_id)
+                try:
+                    # Try concurrent scraping first
+                    publications_data = await loop.run_in_executor(executor, scraper.scrape_publications, user_id, 200)
+                except Exception as e:
+                    logger.warning(f"Concurrent scraping failed, falling back to legacy method: {str(e)}")
+                    # Fallback to sequential scraping
+                    publications_data = await loop.run_in_executor(executor, scraper.scrape_publications_legacy, user_id, 200)
+                
+                # Cache publications for future use
+                cache_publications(profile_id, publications_data, ttl=1800)
+        else:
+            logger.info(f"📥 Using cached publications for analysis")
+            # Still need profile data
+            loop = asyncio.get_event_loop()
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                profile_data = await loop.run_in_executor(executor, scraper.scrape_profile, user_id)
         
         # Perform comprehensive analysis
         analysis = analyzer.analyze_profile_comprehensive(profile_data, publications_data)
@@ -251,6 +348,10 @@ async def get_analysis_overview(profile_id: str):
             'interdisciplinary_score': research_areas.get('interdisciplinary_score', 0)
         }
         
+        # Cache the analysis result
+        cache_analysis(profile_id, "overview", overview_data, ttl=3600)  # 1 hour
+        logger.info(f"💾 Cached overview analysis for {profile_id}")
+        
         return AnalysisResult(
             profile_id=profile_id,
             analysis_type="overview",
@@ -267,28 +368,47 @@ async def get_analysis_overview(profile_id: str):
 
 @app.get("/api/analysis/{profile_id}/authorship", response_model=AnalysisResult)
 async def get_authorship_analysis(profile_id: str):
-    """Get authorship analysis for a profile"""
+    """Get authorship analysis for a profile with caching"""
     try:
         logger.info(f"Generating authorship analysis for profile: {profile_id}")
+        
+        # Check cache first
+        cached_analysis = get_cached_analysis(profile_id, "authorship")
+        if cached_analysis:
+            logger.info(f"📥 Cache HIT: Authorship analysis for {profile_id}")
+            return AnalysisResult(
+                profile_id=profile_id,
+                analysis_type="authorship",
+                results=cached_analysis,
+                computed_at=datetime.now()
+            )
+        
+        logger.info(f"📤 Cache MISS: Computing authorship analysis for {profile_id}")
         
         # Extract user ID from profile ID
         user_id = profile_id.replace('profile_', '')
         
-        # Initialize scraper and analyzer
-        scraper = GoogleScholarScraper()
+        # Initialize analyzer
         analyzer = ProfileAnalyzer()
         
-        # Get profile and publications data
+        # Try to use cached publications data
+        publications_data = await get_publications_data(profile_id, user_id)
+        
+        # Get profile data (needed for analysis)
+        scraper = GoogleScholarScraper()
         loop = asyncio.get_event_loop()
         with concurrent.futures.ThreadPoolExecutor() as executor:
             profile_data = await loop.run_in_executor(executor, scraper.scrape_profile, user_id)
-            publications_data = await loop.run_in_executor(executor, scraper.scrape_publications, user_id, 200)
         
         # Perform comprehensive analysis
         analysis = analyzer.analyze_profile_comprehensive(profile_data, publications_data)
         
         # Extract authorship analysis
         authorship_data = analysis.get('authorship_analysis', {})
+        
+        # Cache the analysis result
+        cache_analysis(profile_id, "authorship", authorship_data, ttl=3600)  # 1 hour
+        logger.info(f"💾 Cached authorship analysis for {profile_id}")
         
         return AnalysisResult(
             profile_id=profile_id,
@@ -306,32 +426,52 @@ async def get_authorship_analysis(profile_id: str):
 
 @app.get("/api/analysis/{profile_id}/complete")
 async def get_complete_analysis(profile_id: str, use_semantic_scholar: bool = False):
-    """Get complete comprehensive analysis for a profile"""
+    """Get complete comprehensive analysis for a profile with caching"""
     try:
         logger.info(f"Generating complete analysis for profile: {profile_id}")
+        
+        # Create cache key with parameters
+        cache_key = f"complete_{use_semantic_scholar}"
+        
+        # Check cache first
+        cached_analysis = get_cached_analysis(profile_id, cache_key)
+        if cached_analysis:
+            logger.info(f"📥 Cache HIT: Complete analysis for {profile_id} (semantic_scholar={use_semantic_scholar})")
+            return cached_analysis
+        
+        logger.info(f"📤 Cache MISS: Computing complete analysis for {profile_id} (semantic_scholar={use_semantic_scholar})")
         
         # Extract user ID from profile ID
         user_id = profile_id.replace('profile_', '')
         
-        # Initialize scraper and analyzer
-        scraper = GoogleScholarScraper()
+        # Initialize analyzer
         analyzer = ProfileAnalyzer(use_semantic_scholar=use_semantic_scholar)
         
-        # Get profile and publications data
+        # Try to use cached publications data
+        publications_data = await get_publications_data(profile_id, user_id)
+        
+        # Get profile data (needed for analysis)
+        scraper = GoogleScholarScraper()
         loop = asyncio.get_event_loop()
         with concurrent.futures.ThreadPoolExecutor() as executor:
             profile_data = await loop.run_in_executor(executor, scraper.scrape_profile, user_id)
-            publications_data = await loop.run_in_executor(executor, scraper.scrape_publications, user_id, 200)
         
         # Perform comprehensive analysis
         complete_analysis = analyzer.analyze_profile_comprehensive(profile_data, publications_data)
         
-        return {
+        # Prepare response
+        result = {
             "profile_id": profile_id,
             "profile_data": profile_data,
             "publications_count": len(publications_data),
             "analysis": complete_analysis
         }
+        
+        # Cache the complete analysis result
+        cache_analysis(profile_id, cache_key, result, ttl=3600)  # 1 hour
+        logger.info(f"💾 Cached complete analysis for {profile_id} (semantic_scholar={use_semantic_scholar})")
+        
+        return result
     
     except Exception as e:
         logger.error(f"Error generating complete analysis for {profile_id}: {str(e)}")

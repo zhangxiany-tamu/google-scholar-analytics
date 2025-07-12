@@ -10,7 +10,7 @@ export default function Home() {
   const router = useRouter()
 
   const getApiUrl = () => {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
   }
 
   const handleAnalyze = async (e: React.FormEvent) => {

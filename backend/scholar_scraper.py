@@ -4,7 +4,11 @@ import re
 from typing import Dict, List, Optional
 import time
 import logging
+import asyncio
+import aiohttp
 from urllib.parse import urljoin, urlparse, parse_qs
+from concurrent.futures import ThreadPoolExecutor
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +24,10 @@ class GoogleScholarScraper:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         })
         self.base_url = "https://scholar.google.com"
+        # Rate limiting controls
+        self._rate_limiter = threading.Semaphore(3)  # Max 3 concurrent requests
+        self._last_request_time = 0
+        self._min_delay = 0.5  # Minimum delay between requests (reduced from 2s)
         
     def extract_user_id(self, url_or_id: str) -> str:
         """Extract user ID from Google Scholar URL or return if already an ID"""
@@ -67,7 +75,49 @@ class GoogleScholarScraper:
     
     def scrape_publications(self, user_id: str, limit: int = 200) -> List[Dict]:
         """
-        Scrape publications from Google Scholar profile
+        Scrape publications from Google Scholar profile using concurrent requests
+        """
+        try:
+            user_id = self.extract_user_id(user_id)
+            
+            # First, do a sequential check to determine the actual number of pages
+            first_page_data = self._scrape_single_page(user_id, 0)
+            if not first_page_data:
+                logger.warning("No publications found on first page")
+                return []
+            
+            publications = first_page_data
+            page_size = 20
+            
+            # Estimate total pages needed (with some buffer)
+            estimated_pages = min((limit // page_size) + 1, 15)  # Cap at 15 pages (300 pubs)
+            
+            # Prepare concurrent requests for remaining pages
+            page_starts = list(range(page_size, estimated_pages * page_size, page_size))
+            
+            if page_starts:
+                logger.info(f"Scraping {len(page_starts)} additional pages concurrently...")
+                concurrent_results = self._scrape_pages_concurrent(user_id, page_starts)
+                
+                # Merge results
+                for page_publications in concurrent_results:
+                    if page_publications:
+                        publications.extend(page_publications)
+                    
+                    # Stop if we have enough publications
+                    if len(publications) >= limit:
+                        break
+            
+            logger.info(f"Scraping completed. Total publications found: {len(publications)}")
+            return publications[:limit]
+            
+        except Exception as e:
+            logger.error(f"Error scraping publications for {user_id}: {str(e)}")
+            raise
+
+    def scrape_publications_legacy(self, user_id: str, limit: int = 200) -> List[Dict]:
+        """
+        Legacy sequential scraping method (kept as fallback)
         """
         try:
             user_id = self.extract_user_id(user_id)
@@ -113,6 +163,59 @@ class GoogleScholarScraper:
         except Exception as e:
             logger.error(f"Error scraping publications for {user_id}: {str(e)}")
             raise
+
+    def _scrape_single_page(self, user_id: str, start: int) -> List[Dict]:
+        """
+        Scrape a single page of publications with rate limiting
+        """
+        try:
+            with self._rate_limiter:
+                # Implement rate limiting
+                current_time = time.time()
+                time_since_last = current_time - self._last_request_time
+                if time_since_last < self._min_delay:
+                    time.sleep(self._min_delay - time_since_last)
+                
+                url = f"{self.base_url}/citations?user={user_id}&hl=en&cstart={start}&pagesize=20"
+                
+                logger.debug(f"Scraping page starting at {start}")
+                response = self.session.get(url)
+                response.raise_for_status()
+                
+                self._last_request_time = time.time()
+                
+                soup = BeautifulSoup(response.content, 'html.parser')
+                return self._extract_publications_from_page(soup, user_id)
+                
+        except Exception as e:
+            logger.error(f"Error scraping page starting at {start}: {str(e)}")
+            return []
+
+    def _scrape_pages_concurrent(self, user_id: str, page_starts: List[int]) -> List[List[Dict]]:
+        """
+        Scrape multiple pages concurrently using ThreadPoolExecutor
+        """
+        results = []
+        
+        # Use ThreadPoolExecutor for concurrent requests
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            # Submit all tasks
+            future_to_start = {
+                executor.submit(self._scrape_single_page, user_id, start): start 
+                for start in page_starts
+            }
+            
+            # Collect results as they complete
+            for future in future_to_start:
+                try:
+                    page_publications = future.result(timeout=30)  # 30 second timeout per page
+                    results.append(page_publications)
+                except Exception as e:
+                    start = future_to_start[future]
+                    logger.error(f"Error scraping page starting at {start}: {str(e)}")
+                    results.append([])  # Empty result for failed page
+        
+        return results
     
     def _extract_name(self, soup: BeautifulSoup) -> Optional[str]:
         """Extract researcher name"""
