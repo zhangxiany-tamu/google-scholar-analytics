@@ -3,7 +3,7 @@ service: backend
 
 env_variables:
   DATABASE_URL: "postgresql://postgres:password@/postgres?host=/cloudsql/curious-kingdom-465619-v1:us-central1:scholar-db"
-  REDIS_URL: "redis://localhost:6379"
+  REDIS_URL: "redis://redis-memorystore:6379"
 
 automatic_scaling:
   min_instances: 1
@@ -11,8 +11,8 @@ automatic_scaling:
   target_cpu_utilization: 0.6
 
 resources:
-  cpu: 1
-  memory_gb: 2
+  cpu: 2
+  memory_gb: 4
   disk_size_gb: 10
 
 beta_settings:

@@ -1,0 +1,275 @@
+{
+  "timestamp": "20250712_104931",
+  "workflow_result": {
+    "scholar_id": "Z_ZD6A4AAAAJ",
+    "profile_id": "profile_Z_ZD6A4AAAAJ",
+    "steps": {
+      "import": {
+        "endpoint": "/api/scholar/import/Z_ZD6A4AAAAJ",
+        "method": "POST",
+        "iterations": 2,
+        "avg_time": 0.5107364654541016,
+        "min_time": 0.39148902893066406,
+        "max_time": 0.6299839019775391,
+        "std_dev": 0.16864134200967007,
+        "success_rate": 100.0,
+        "responses": [
+          {
+            "status_code": 200,
+            "response_size": 820,
+            "duration": 0.6299839019775391
+          },
+          {
+            "status_code": 200,
+            "response_size": 820,
+            "duration": 0.39148902893066406
+          }
+        ]
+      },
+      "publications": {
+        "endpoint": "/api/publications/profile_Z_ZD6A4AAAAJ",
+        "method": "GET",
+        "iterations": 3,
+        "avg_time": 0.006489674250284831,
+        "min_time": 0.005095958709716797,
+        "max_time": 0.008697986602783203,
+        "std_dev": 0.001934251072149737,
+        "success_rate": 100.0,
+        "responses": [
+          {
+            "status_code": 200,
+            "response_size": 39623,
+            "duration": 0.008697986602783203
+          },
+          {
+            "status_code": 200,
+            "response_size": 39623,
+            "duration": 0.005675077438354492
+          },
+          {
+            "status_code": 200,
+            "response_size": 39623,
+            "duration": 0.005095958709716797
+          }
+        ]
+      },
+      "overview": {
+        "endpoint": "/api/analysis/profile_Z_ZD6A4AAAAJ/overview",
+        "method": "GET",
+        "iterations": 3,
+        "avg_time": 0.00412901242574056,
+        "min_time": 0.003871917724609375,
+        "max_time": 0.004290103912353516,
+        "std_dev": 0.00022501641007573037,
+        "success_rate": 100.0,
+        "responses": [
+          {
+            "status_code": 200,
+            "response_size": 692,
+            "duration": 0.003871917724609375
+          },
+          {
+            "status_code": 200,
+            "response_size": 692,
+            "duration": 0.004290103912353516
+          },
+          {
+            "status_code": 200,
+            "response_size": 692,
+            "duration": 0.004225015640258789
+          }
+        ]
+      },
+      "authorship": {
+        "endpoint": "/api/analysis/profile_Z_ZD6A4AAAAJ/authorship",
+        "method": "GET",
+        "iterations": 3,
+        "avg_time": 0.004591941833496094,
+        "min_time": 0.003993034362792969,
+        "max_time": 0.005037784576416016,
+        "std_dev": 0.0005389316843393604,
+        "success_rate": 100.0,
+        "responses": [
+          {
+            "status_code": 200,
+            "response_size": 19686,
+            "duration": 0.003993034362792969
+          },
+          {
+            "status_code": 200,
+            "response_size": 19686,
+            "duration": 0.004745006561279297
+          },
+          {
+            "status_code": 200,
+            "response_size": 19686,
+            "duration": 0.005037784576416016
+          }
+        ]
+      },
+      "complete": {
+        "endpoint": "/api/analysis/profile_Z_ZD6A4AAAAJ/complete",
+        "method": "GET",
+        "iterations": 3,
+        "avg_time": 0.015623013178507486,
+        "min_time": 0.014467239379882812,
+        "max_time": 0.017663002014160156,
+        "std_dev": 0.0017718921743268212,
+        "success_rate": 100.0,
+        "responses": [
+          {
+            "status_code": 200,
+            "response_size": 129596,
+            "duration": 0.014467239379882812
+          },
+          {
+            "status_code": 200,
+            "response_size": 129596,
+            "duration": 0.017663002014160156
+          },
+          {
+            "status_code": 200,
+            "response_size": 129596,
+            "duration": 0.014738798141479492
+          }
+        ]
+      }
+    },
+    "total_avg_time": 0.5415701071421305,
+    "bottlenecks": [
+      "import: 0.51s (94.3%)"
+    ]
+  },
+  "all_results": [
+    {
+      "endpoint": "/api/scholar/import/Z_ZD6A4AAAAJ",
+      "method": "POST",
+      "iterations": 2,
+      "avg_time": 0.5107364654541016,
+      "min_time": 0.39148902893066406,
+      "max_time": 0.6299839019775391,
+      "std_dev": 0.16864134200967007,
+      "success_rate": 100.0,
+      "responses": [
+        {
+          "status_code": 200,
+          "response_size": 820,
+          "duration": 0.6299839019775391
+        },
+        {
+          "status_code": 200,
+          "response_size": 820,
+          "duration": 0.39148902893066406
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/publications/profile_Z_ZD6A4AAAAJ",
+      "method": "GET",
+      "iterations": 3,
+      "avg_time": 0.006489674250284831,
+      "min_time": 0.005095958709716797,
+      "max_time": 0.008697986602783203,
+      "std_dev": 0.001934251072149737,
+      "success_rate": 100.0,
+      "responses": [
+        {
+          "status_code": 200,
+          "response_size": 39623,
+          "duration": 0.008697986602783203
+        },
+        {
+          "status_code": 200,
+          "response_size": 39623,
+          "duration": 0.005675077438354492
+        },
+        {
+          "status_code": 200,
+          "response_size": 39623,
+          "duration": 0.005095958709716797
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/analysis/profile_Z_ZD6A4AAAAJ/overview",
+      "method": "GET",
+      "iterations": 3,
+      "avg_time": 0.00412901242574056,
+      "min_time": 0.003871917724609375,
+      "max_time": 0.004290103912353516,
+      "std_dev": 0.00022501641007573037,
+      "success_rate": 100.0,
+      "responses": [
+        {
+          "status_code": 200,
+          "response_size": 692,
+          "duration": 0.003871917724609375
+        },
+        {
+          "status_code": 200,
+          "response_size": 692,
+          "duration": 0.004290103912353516
+        },
+        {
+          "status_code": 200,
+          "response_size": 692,
+          "duration": 0.004225015640258789
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/analysis/profile_Z_ZD6A4AAAAJ/authorship",
+      "method": "GET",
+      "iterations": 3,
+      "avg_time": 0.004591941833496094,
+      "min_time": 0.003993034362792969,
+      "max_time": 0.005037784576416016,
+      "std_dev": 0.0005389316843393604,
+      "success_rate": 100.0,
+      "responses": [
+        {
+          "status_code": 200,
+          "response_size": 19686,
+          "duration": 0.003993034362792969
+        },
+        {
+          "status_code": 200,
+          "response_size": 19686,
+          "duration": 0.004745006561279297
+        },
+        {
+          "status_code": 200,
+          "response_size": 19686,
+          "duration": 0.005037784576416016
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/analysis/profile_Z_ZD6A4AAAAJ/complete",
+      "method": "GET",
+      "iterations": 3,
+      "avg_time": 0.015623013178507486,
+      "min_time": 0.014467239379882812,
+      "max_time": 0.017663002014160156,
+      "std_dev": 0.0017718921743268212,
+      "success_rate": 100.0,
+      "responses": [
+        {
+          "status_code": 200,
+          "response_size": 129596,
+          "duration": 0.014467239379882812
+        },
+        {
+          "status_code": 200,
+          "response_size": 129596,
+          "duration": 0.017663002014160156
+        },
+        {
+          "status_code": 200,
+          "response_size": 129596,
+          "duration": 0.014738798141479492
+        }
+      ]
+    }
+  ]
+}

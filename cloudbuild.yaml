@@ -27,10 +27,10 @@ steps:
       - '--platform=managed'
       - '--allow-unauthenticated'
       - '--port=8000'
-      - '--memory=2Gi'
-      - '--cpu=1'
+      - '--memory=4Gi'
+      - '--cpu=2'
       - '--max-instances=10'
-      - '--set-env-vars=DATABASE_URL=postgresql://postgres:password@/postgres?host=/cloudsql/curious-kingdom-465619-v1:us-central1:scholar-db'
+      - '--set-env-vars=DATABASE_URL=postgresql://postgres:password@/postgres?host=/cloudsql/curious-kingdom-465619-v1:us-central1:scholar-db,REDIS_URL=redis://${_REDIS_HOST}:6379'
       - '--add-cloudsql-instances=curious-kingdom-465619-v1:us-central1:scholar-db'
       
   # Deploy frontend to Cloud Run
@@ -48,7 +48,7 @@ steps:
       - '--memory=1Gi'
       - '--cpu=1'
       - '--max-instances=5'
-      - '--set-env-vars=NEXT_PUBLIC_API_URL=https://scholar-backend-[hash]-uc.a.run.app'
+      - '--set-env-vars=NEXT_PUBLIC_API_URL=https://scholar-backend-771064042567-uc.a.run.app'
 
 images:
   - 'gcr.io/curious-kingdom-465619-v1/scholar-backend:$COMMIT_SHA'

@@ -1,0 +1,30 @@
+{
+  "timestamp": "20250712_103202",
+  "workflow_result": {
+    "error": "Could not extract profile ID"
+  },
+  "all_results": [
+    {
+      "endpoint": "/api/scholar/import/xqQfJXcAAAAJ",
+      "method": "POST",
+      "iterations": 2,
+      "avg_time": 0.4346129894256592,
+      "min_time": 0.35109901428222656,
+      "max_time": 0.5181269645690918,
+      "std_dev": 0.11810659629553195,
+      "success_rate": 100.0,
+      "responses": [
+        {
+          "status_code": 500,
+          "response_size": 136,
+          "duration": 0.35109901428222656
+        },
+        {
+          "status_code": 500,
+          "response_size": 136,
+          "duration": 0.5181269645690918
+        }
+      ]
+    }
+  ]
+}
