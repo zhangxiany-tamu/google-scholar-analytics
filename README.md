@@ -2,8 +2,6 @@
 
 A web application for analyzing Google Scholar profiles with comprehensive metrics and insights.
 
-🌐 **Live Demo**: [https://scholar-frontend-771064042567.us-central1.run.app](https://scholar-frontend-771064042567.us-central1.run.app)
-
 ## Features
 
 - **Profile Analysis**: Citation trends, h-index, publication metrics
@@ -33,7 +31,7 @@ docker-compose up -d
 ## How It Works
 
 1. **Import**: Paste a Google Scholar profile URL
-2. **Analysis**: The system scrapes publication data and performs comprehensive analysis
+2. **Analysis**: The system scrapes publication data and performs analysis
 3. **Results**: View detailed statistics, charts, and insights about research impact
 
 ## Tech Stack
@@ -72,13 +70,6 @@ curl -X POST "https://scholar-backend-771064042567.us-central1.run.app/api/schol
 curl "https://scholar-backend-771064042567.us-central1.run.app/api/analysis/{profile_id}/complete"
 ```
 
-## Key Features
-
-- **Venue Classification**: Distinguishes between conferences (CVPR, NeurIPS) and journals using comprehensive databases
-- **Author List Handling**: Properly handles truncated author lists from Google Scholar
-- **Citation Analysis**: Tracks citation patterns and research impact over time
-- **Collaboration Metrics**: Identifies key collaborators and partnership trends
-
 ## Contributing
 
 1. Fork the repository
@@ -91,4 +82,4 @@ MIT License - see LICENSE file for details.
 
 ## Note
 
-This tool is for research and educational purposes. Please respect Google Scholar's terms of service and implement appropriate rate limiting for production use.
+This tool is for research and educational purposes.
