@@ -126,4 +126,9 @@ celerybeat.pid
 dmypy.json
 
 # Pyre type checker
-.pyre/ 
+.pyre/
+
+# Deployment artifacts
+*.tar.gz
+deploy_backend/
+benchmark_results_*.json 
