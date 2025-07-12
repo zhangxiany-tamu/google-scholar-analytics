@@ -1,6 +1,6 @@
 # Google Scholar Profile Analyzer
 
-A web application for analyzing Google Scholar profiles with comprehensive metrics and insights.
+A web application for analyzing Google Scholar profiles with metrics and insights.
 
 ## Features
 
@@ -58,16 +58,6 @@ cd frontend && npm install && npm run dev
 
 # Backend  
 cd backend && pip install -r requirements.txt && uvicorn main:app --reload
-```
-
-## API Usage
-
-```bash
-# Import a profile
-curl -X POST "https://scholar-backend-771064042567.us-central1.run.app/api/scholar/import/{profile_id}"
-
-# Get analysis
-curl "https://scholar-backend-771064042567.us-central1.run.app/api/analysis/{profile_id}/complete"
 ```
 
 ## Contributing
