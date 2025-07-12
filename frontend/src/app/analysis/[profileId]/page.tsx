@@ -23,6 +23,8 @@ interface ProfileData {
     peak_cumulative_citations?: number
     peak_yearly_year?: number
     peak_yearly_citations?: number
+    peak_year?: number
+    peak_citations?: number
     extraction_method?: string
     data_type?: string
   }
@@ -337,10 +339,10 @@ export default function AnalysisResults() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="flex gap-8">
+        <div className="flex flex-col lg:flex-row gap-8">
           {/* Author Highlighter Sidebar */}
-          <div className="w-80 flex-shrink-0">
-            <div className="bg-white rounded-lg shadow-lg p-6 sticky top-8">
+          <div className="w-full lg:w-80 lg:flex-shrink-0">
+            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:sticky lg:top-8">
               <h3 className="text-lg font-bold text-blue-600 mb-4">Author Highlighter</h3>
               
               <div className="space-y-4">
@@ -452,8 +454,8 @@ export default function AnalysisResults() {
           {/* Main Content */}
           <div className="flex-1">
             {/* Profile Overview */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <div className="flex items-start space-x-6">
+        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-8">
+          <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-6">
             <div className="relative">
               {profile_data.profile_image_url ? (
                 <>
@@ -508,13 +510,13 @@ export default function AnalysisResults() {
                 </div>
               )}
             </div>
-            <div className="flex-1">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">{profile_data.name}</h2>
+            <div className="flex-1 text-center sm:text-left">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{profile_data.name}</h2>
               {profile_data.affiliation && (
-                <p className="text-lg text-gray-600 mb-3">{profile_data.affiliation}</p>
+                <p className="text-base sm:text-lg text-gray-600 mb-3">{profile_data.affiliation}</p>
               )}
               {profile_data.interests.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                   {profile_data.interests.map((interest, index) => (
                     <span key={index} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
                       {interest}
@@ -527,38 +529,38 @@ export default function AnalysisResults() {
         </div>
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <div className="text-3xl font-bold text-black mb-2">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6 text-center">
+            <div className="text-2xl sm:text-3xl font-bold text-black mb-2">
               {basic_metrics?.total_publications || 0}
             </div>
-            <div className="text-gray-600">Publications</div>
+            <div className="text-gray-600 text-sm sm:text-base">Publications</div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <div className="text-3xl font-bold text-black mb-2">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6 text-center">
+            <div className="text-2xl sm:text-3xl font-bold text-black mb-2">
               {basic_metrics?.total_citations || 0}
             </div>
-            <div className="text-gray-600">Citations</div>
+            <div className="text-gray-600 text-sm sm:text-base">Citations</div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <div className="text-3xl font-bold text-black mb-2">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6 text-center">
+            <div className="text-2xl sm:text-3xl font-bold text-black mb-2">
               {basic_metrics?.h_index || 0}
             </div>
-            <div className="text-gray-600">h-index</div>
+            <div className="text-gray-600 text-sm sm:text-base">h-index</div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <div className="text-3xl font-bold text-black mb-2">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6 text-center">
+            <div className="text-2xl sm:text-3xl font-bold text-black mb-2">
               {basic_metrics?.i10_index || 0}
             </div>
-            <div className="text-gray-600">i10-index</div>
+            <div className="text-gray-600 text-sm sm:text-base">i10-index</div>
           </div>
         </div>
 
         {/* Analysis Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           
           {/* Authorship Analysis */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Authorship Analysis</h3>
             <div className="space-y-4">
               {authorship_analysis && Object.entries(authorship_analysis)
@@ -577,7 +579,7 @@ export default function AnalysisResults() {
                       View Papers →
                     </button>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-sm">
                     <div>
                       <div className="font-bold text-lg">{data.count}</div>
                       <div className="text-gray-500">Papers</div>
@@ -598,7 +600,7 @@ export default function AnalysisResults() {
           </div>
 
           {/* Research Areas */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-gray-900">Research Areas</h3>
             </div>
@@ -614,7 +616,7 @@ export default function AnalysisResults() {
           </div>
 
           {/* Citation Analysis */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-6">Citation Analysis</h3>
             
             {/* Summary Stats */}
@@ -636,7 +638,7 @@ export default function AnalysisResults() {
             {/* Citation Ranges */}
             <div className="space-y-3">
               <h4 className="text-lg font-semibold text-gray-700">Papers by Citation Range</h4>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="cursor-pointer hover:bg-gray-50 p-3 rounded-lg border transition-colors" onClick={() => handleFilterClick('citation_range', 'highly_cited')}>
                   <div className="flex justify-between items-center">
                     <div>
@@ -686,7 +688,7 @@ export default function AnalysisResults() {
           </div>
 
           {/* Collaboration Overview */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Collaboration Overview</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
@@ -822,11 +824,11 @@ export default function AnalysisResults() {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Peak Year:</span>
-                      <span className="font-bold text-blue-600">{data.profile_data.citation_timeline.peak_year}</span>
+                      <span className="font-bold text-blue-600">{data.profile_data.citation_timeline.peak_year || data.profile_data.citation_timeline.peak_yearly_year}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Peak Citations:</span>
-                      <span className="font-bold text-blue-600">{data.profile_data.citation_timeline.peak_citations}</span>
+                      <span className="font-bold text-blue-600">{data.profile_data.citation_timeline.peak_citations || data.profile_data.citation_timeline.peak_yearly_citations}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Active Years:</span>
@@ -839,10 +841,10 @@ export default function AnalysisResults() {
                 <div className="bg-gray-50 rounded-lg p-4 mt-4">
                   <h4 className="font-semibold text-gray-800 mb-4">Growth Analysis</h4>
                   <div className="space-y-3">
-                    {data.profile_data.citation_timeline.yearly_citations && (() => {
+                    {data.profile_data.citation_timeline?.yearly_citations && (() => {
                       const years = Object.keys(data.profile_data.citation_timeline.yearly_citations).map(Number).sort();
                       const completeYears = years.filter(year => year <= 2024); // Exclude incomplete 2025
-                      const values = completeYears.map(year => data.profile_data.citation_timeline.yearly_citations![year]);
+                      const values = completeYears.map(year => data.profile_data.citation_timeline?.yearly_citations![year] || 0);
                       
                       if (values.length < 2) {
                         return <div className="text-gray-500">Insufficient data for growth analysis</div>;
@@ -851,12 +853,12 @@ export default function AnalysisResults() {
                       // Recent vs Early analysis (excluding 2025)
                       const recentCount = Math.min(3, Math.floor(completeYears.length / 2));
                       const recentYears = completeYears.slice(-recentCount);
-                      const recentValues = recentYears.map(year => data.profile_data.citation_timeline.yearly_citations![year]);
+                      const recentValues = recentYears.map(year => data.profile_data.citation_timeline?.yearly_citations![year] || 0);
                       const avgRecent = recentValues.reduce((a, b) => a + b, 0) / recentValues.length;
                       
                       const earlyCount = Math.min(3, Math.floor(completeYears.length / 2));
                       const earlyYears = completeYears.slice(0, earlyCount);
-                      const earlyValues = earlyYears.map(year => data.profile_data.citation_timeline.yearly_citations![year]);
+                      const earlyValues = earlyYears.map(year => data.profile_data.citation_timeline?.yearly_citations![year] || 0);
                       const avgEarly = earlyValues.reduce((a, b) => a + b, 0) / earlyValues.length;
                       
                       const careerGrowth = avgEarly > 0 ? ((avgRecent - avgEarly) / avgEarly * 100) : 0;
@@ -868,7 +870,7 @@ export default function AnalysisResults() {
                       
                       // 3-year trend (2022-2024)
                       const trendYears = completeYears.filter(year => year >= 2022);
-                      const trendValues = trendYears.map(year => data.profile_data.citation_timeline.yearly_citations![year]);
+                      const trendValues = trendYears.map(year => data.profile_data.citation_timeline?.yearly_citations![year] || 0);
                       const trendDirection = trendValues.length >= 2 ? 
                         (trendValues[trendValues.length - 1] > trendValues[0] ? 'Increasing' : 
                          trendValues[trendValues.length - 1] < trendValues[0] ? 'Decreasing' : 'Stable') : 'N/A';
@@ -914,12 +916,12 @@ export default function AnalysisResults() {
                 <div className="bg-gradient-to-br from-orange-50 to-amber-100 rounded-lg p-4 mt-4">
                   <h4 className="font-semibold text-gray-800 mb-3">2025 Projection</h4>
                   <div className="space-y-3">
-                    {data.profile_data.citation_timeline.yearly_citations && (() => {
+                    {data.profile_data.citation_timeline?.yearly_citations && (() => {
                       const years = Object.keys(data.profile_data.citation_timeline.yearly_citations).map(Number).sort();
-                      const values = years.map(year => data.profile_data.citation_timeline.yearly_citations![year]);
+                      const values = years.map(year => data.profile_data.citation_timeline?.yearly_citations![year] || 0);
                       
                       // Current 2025 data
-                      const current2025 = data.profile_data.citation_timeline.yearly_citations![2025] || 0;
+                      const current2025 = data.profile_data.citation_timeline?.yearly_citations![2025] || 0;
                       
                       // Calculate projection based on July position (month 7 out of 12)
                       const monthProgress = 7 / 12; // July = 7th month
@@ -927,7 +929,7 @@ export default function AnalysisResults() {
                       
                       // Alternative projection based on recent trend
                       const recentYears = years.filter(y => y >= 2022 && y <= 2024);
-                      const recentValues = recentYears.map(year => data.profile_data.citation_timeline.yearly_citations![year]);
+                      const recentValues = recentYears.map(year => data.profile_data.citation_timeline?.yearly_citations![year] || 0);
                       const avgRecent = recentValues.length > 0 ? recentValues.reduce((a, b) => a + b, 0) / recentValues.length : 0;
                       
                       return (
@@ -958,22 +960,22 @@ export default function AnalysisResults() {
               <div className="lg:col-span-2">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h4 className="font-semibold text-gray-800 mb-4">Annual Citation Counts</h4>
-                  {data.profile_data.citation_timeline.yearly_citations && (
+                  {data.profile_data.citation_timeline?.yearly_citations && (
                     <div className="relative">
                       {/* Chart container with fixed height */}
                       <div className="w-full bg-white rounded border border-gray-200 p-4" style={{ height: '300px' }}>
                         <div className="relative w-full" style={{ height: '240px' }}>
                           <div className="absolute inset-0 flex items-end justify-between">
-                            {Object.entries(data.profile_data.citation_timeline.yearly_citations)
+                            {Object.entries(data.profile_data.citation_timeline?.yearly_citations || {})
                               .sort(([a], [b]) => parseInt(a) - parseInt(b))
                               .map(([year, citations]) => {
-                                const maxCitations = Math.max(...Object.values(data.profile_data.citation_timeline.yearly_citations!));
+                                const maxCitations = Math.max(...Object.values(data.profile_data.citation_timeline?.yearly_citations || {}));
                                 const heightPx = Math.max((citations / maxCitations) * 220, 4); // Fixed pixel height, min 4px
                                 const isCurrentYear = year === '2025';
-                                const isPeakYear = year === data.profile_data.citation_timeline.peak_year?.toString();
+                                const isPeakYear = year === (data.profile_data.citation_timeline?.peak_year || data.profile_data.citation_timeline?.peak_yearly_year)?.toString();
                                 
                                 return (
-                                  <div key={year} className="flex flex-col items-center" style={{ width: `${100 / Object.keys(data.profile_data.citation_timeline.yearly_citations!).length}%` }}>
+                                  <div key={year} className="flex flex-col items-center" style={{ width: `${100 / Object.keys(data.profile_data.citation_timeline?.yearly_citations || {}).length}%` }}>
                                     <div className="flex flex-col items-center w-full">
                                       {/* Bar with fixed pixel height */}
                                       <div 
@@ -1045,12 +1047,12 @@ export default function AnalysisResults() {
 
         {/* Filter Modal */}
         {showFilterModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-              <div className="p-6 border-b">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
+              <div className="p-4 sm:p-6 border-b">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1 mr-4">
+                    <h2 className="text-lg sm:text-2xl font-bold text-gray-900">
                       {filterType === 'authorship' ? `${filterValue.replace('_', ' ')} Papers` :
                        filterType === 'research_area' ? `${filterValue.replace('_', ' ')} Research` :
                        filterType === 'citation_range' ? `${filterValue.replace('_', ' ')} Papers` :
@@ -1059,7 +1061,7 @@ export default function AnalysisResults() {
                        filterType === 'coauthor' ? `Papers with ${filterValue}` : 'Filtered Papers'}
                     </h2>
                     {filterStats && (
-                      <div className="flex space-x-6 mt-2 text-sm text-gray-600">
+                      <div className="flex flex-wrap gap-2 sm:gap-6 mt-2 text-sm text-gray-600">
                         <span><strong>{filterStats.count}</strong> papers</span>
                         <span><strong>{filterStats.totalCitations}</strong> total citations</span>
                         <span><strong>{filterStats.avgCitations.toFixed(1)}</strong> avg citations</span>
@@ -1068,14 +1070,14 @@ export default function AnalysisResults() {
                   </div>
                   <button
                     onClick={() => setShowFilterModal(false)}
-                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                    className="text-gray-400 hover:text-gray-600 text-2xl p-2 -m-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
                   >
                     ×
                   </button>
                 </div>
               </div>
               
-              <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+              <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(95vh-180px)] sm:max-h-[calc(90vh-140px)]">
                 <div className="space-y-4">
                   {filteredPapers.map((paper, index) => (
                     <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
@@ -1146,10 +1148,10 @@ export default function AnalysisResults() {
                 </div>
               </div>
               
-              <div className="p-6 border-t bg-gray-50">
+              <div className="p-4 sm:p-6 border-t bg-gray-50">
                 <button
                   onClick={() => setShowFilterModal(false)}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  className="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors min-h-[48px]"
                 >
                   Close
                 </button>

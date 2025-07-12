@@ -150,6 +150,14 @@ async def root():
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.now()}
 
+@app.get("/version")
+async def version_check():
+    return {
+        "version": "1.1.0-caching", 
+        "features": ["redis_caching", "concurrent_scraping"],
+        "cache_status": "connected" if cache_manager.redis_client else "disabled"
+    }
+
 @app.post("/api/scholar/import/{google_scholar_id:path}", response_model=ScholarProfileResponse)
 async def import_scholar_profile(google_scholar_id: str):
     """Import and analyze a Google Scholar profile"""

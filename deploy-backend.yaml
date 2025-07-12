@@ -1,0 +1,33 @@
+steps:
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', 'gs://curious-kingdom-465619-v1_cloudbuild/backend-deploy.tar.gz', '.']
+  
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['run', '--rm', '-v', '/workspace:/workspace', 'alpine', 'tar', '-xzf', '/workspace/backend-deploy.tar.gz', '-C', '/workspace']
+
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/curious-kingdom-465619-v1/scholar-backend:latest', '.']
+
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/curious-kingdom-465619-v1/scholar-backend:latest']
+
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'gcloud'
+  args:
+    - 'run'
+    - 'deploy'
+    - 'scholar-backend'
+    - '--image=gcr.io/curious-kingdom-465619-v1/scholar-backend:latest'
+    - '--region=us-central1'
+    - '--platform=managed'
+    - '--allow-unauthenticated'
+    - '--port=8000'
+    - '--memory=4Gi'
+    - '--cpu=2'
+    - '--max-instances=10'
+    - '--min-instances=1'
+    - '--cpu-boost'
+    - '--set-env-vars=REDIS_URL=redis://10.131.158.219:6379'
+
+images:
+  - 'gcr.io/curious-kingdom-465619-v1/scholar-backend:latest'

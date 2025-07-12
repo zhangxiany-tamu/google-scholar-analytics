@@ -1,6 +1,6 @@
 # Google Scholar Profile Analyzer
 
-A high-performance web application for analyzing Google Scholar profiles with comprehensive metrics and insights.
+A web application for analyzing Google Scholar profiles with metrics and insights.
 
 ## Features
 
@@ -36,12 +36,6 @@ docker-compose up -d
 2. **Analysis**: High-speed scraping and analysis of publication data
 3. **Results**: View detailed statistics, charts, and insights about research impact
 4. **Performance**: Subsequent analyses are served from cache in milliseconds
-
-## Performance
-
-- **Initial Analysis**: 5-15 seconds (with concurrent scraping)
-- **Cached Results**: < 1 second (50x faster)
-- **Data Sources**: 31,000+ journal classifications, real-time Google Scholar data
 
 ## Tech Stack
 

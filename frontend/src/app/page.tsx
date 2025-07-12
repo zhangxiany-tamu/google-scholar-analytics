@@ -9,6 +9,7 @@ export default function Home() {
   const [error, setError] = useState('')
   const router = useRouter()
 
+
   const getApiUrl = () => {
     return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
   }
@@ -56,8 +57,8 @@ export default function Home() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <h2 className="text-3xl font-bold text-center text-gray-900 mb-8">
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-6 sm:mb-8">
               Analyze Google Scholar Profile
             </h2>
             
@@ -68,9 +69,11 @@ export default function Home() {
                   id="scholar-id"
                   value={scholarId}
                   onChange={(e) => setScholarId(e.target.value)}
+                  onInput={(e) => setScholarId((e.target as HTMLInputElement).value)}
                   placeholder="e.g., ABC123XYZ or https://scholar.google.com/citations?hl=en&user=ABC123XYZ"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   disabled={isLoading}
+                  style={{ fontSize: '16px' }}
                 />
                 <p className="mt-2 text-sm text-gray-500">
                   Enter the Google Scholar user ID or paste the full profile URL
@@ -87,6 +90,7 @@ export default function Home() {
                   type="submit"
                   disabled={isLoading || !scholarId.trim()}
                   className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                  style={{ minHeight: '48px', fontSize: '16px' }}
                 >
                   {isLoading ? (
                     <span className="flex items-center justify-center">

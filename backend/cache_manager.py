@@ -7,6 +7,7 @@ import redis
 import json
 import hashlib
 import logging
+import os
 from typing import Any, Optional, Dict, List
 from datetime import datetime, timedelta
 import pickle
@@ -170,7 +171,8 @@ class CacheManager:
             return {"status": "error", "error": str(e)}
 
 # Global cache instance
-cache_manager = CacheManager()
+redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+cache_manager = CacheManager(redis_url)
 
 def cache_result(namespace: str, ttl: int = 3600, use_params: bool = True):
     """

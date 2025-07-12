@@ -1,0 +1,16 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.log
+.git/
+.pytest_cache/
+.coverage
+test_*
+*.backup
+backend.log
+backend_fresh.log
+backend_new.log
+analysis.log
+.env
+.DS_Store
