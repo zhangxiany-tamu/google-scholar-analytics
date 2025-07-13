@@ -51,6 +51,7 @@ gcloud run deploy scholar-backend \
   --memory 2Gi \
   --cpu 1 \
   --max-instances 10 \
+  --min-instances 1 \
   --set-env-vars "DATABASE_URL=postgresql://postgres:scholar_password_2024@/scholar_db?host=/cloudsql/curious-kingdom-465619-v1:us-central1:scholar-db" \
   --add-cloudsql-instances curious-kingdom-465619-v1:us-central1:scholar-db
 
@@ -70,6 +71,7 @@ gcloud run deploy scholar-frontend \
   --memory 1Gi \
   --cpu 1 \
   --max-instances 5 \
+  --min-instances 1 \
   --set-env-vars "NEXT_PUBLIC_API_URL=$BACKEND_URL"
 
 # Get frontend URL

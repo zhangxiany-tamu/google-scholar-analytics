@@ -1,0 +1,19 @@
+steps:
+  # Build optimized backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build', 
+      '-f', 'Dockerfile.optimized', 
+      '-t', '$_IMAGE_NAME', 
+      '.'
+    ]
+    
+  # Push the image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '$_IMAGE_NAME']
+
+substitutions:
+  _IMAGE_NAME: 'gcr.io/${PROJECT_ID}/scholar-backend:${_TAG_NAME}'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

@@ -1,0 +1,5 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-f', 'Dockerfile.fixed', '-t', 'gcr.io/$PROJECT_ID/scholar-frontend:properly-fixed', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/scholar-frontend:properly-fixed']

@@ -1,0 +1,16 @@
+steps:
+  # Build frontend with API URL using custom Dockerfile
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build', 
+      '-f', 'Dockerfile.fixed', 
+      '-t', 'gcr.io/curious-kingdom-465619-v1/scholar-frontend:v2.0.1-with-api-url', 
+      '.'
+    ]
+    
+  # Push the image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/curious-kingdom-465619-v1/scholar-frontend:v2.0.1-with-api-url']
+
+options:
+  logging: CLOUD_LOGGING_ONLY

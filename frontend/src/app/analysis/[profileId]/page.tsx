@@ -747,22 +747,22 @@ export default function AnalysisResults() {
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h5 className="font-medium text-gray-900 mb-2">{name}</h5>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-500">Papers:</span>
-                            <span className="font-semibold ml-1">{data.collaboration_count}</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 text-sm">
+                          <div className="flex flex-col">
+                            <span className="text-gray-500 text-xs">Papers:</span>
+                            <span className="font-semibold">{data.collaboration_count}</span>
                           </div>
-                          <div>
-                            <span className="text-gray-500">Citations:</span>
-                            <span className="font-semibold ml-1">{data.total_citations}</span>
+                          <div className="flex flex-col">
+                            <span className="text-gray-500 text-xs">Citations:</span>
+                            <span className="font-semibold">{data.total_citations}</span>
                           </div>
-                          <div>
-                            <span className="text-gray-500">Avg Citations:</span>
-                            <span className="font-semibold ml-1">{data.avg_citations}</span>
+                          <div className="flex flex-col">
+                            <span className="text-gray-500 text-xs">Avg Citations:</span>
+                            <span className="font-semibold">{data.avg_citations}</span>
                           </div>
-                          <div>
-                            <span className="text-gray-500">Years Active:</span>
-                            <span className="font-semibold ml-1">
+                          <div className="flex flex-col">
+                            <span className="text-gray-500 text-xs">Years Active:</span>
+                            <span className="font-semibold">
                               {data.years_active && data.years_active.length > 0 ? 
                                 `${Math.min(...data.years_active)}-${Math.max(...data.years_active)}` : 'N/A'}
                             </span>

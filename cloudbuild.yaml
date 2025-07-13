@@ -1,7 +1,7 @@
 steps:
-  # Build backend image
+  # Build backend image with optimized Dockerfile
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/curious-kingdom-465619-v1/scholar-backend:$COMMIT_SHA', './backend']
+    args: ['build', '-f', './backend/Dockerfile.optimized', '-t', 'gcr.io/curious-kingdom-465619-v1/scholar-backend:$COMMIT_SHA', './backend']
     
   # Build frontend image
   - name: 'gcr.io/cloud-builders/docker'
@@ -30,6 +30,7 @@ steps:
       - '--memory=4Gi'
       - '--cpu=2'
       - '--max-instances=10'
+      - '--min-instances=1'
       - '--set-env-vars=DATABASE_URL=postgresql://postgres:password@/postgres?host=/cloudsql/curious-kingdom-465619-v1:us-central1:scholar-db,REDIS_URL=redis://${_REDIS_HOST}:6379'
       - '--add-cloudsql-instances=curious-kingdom-465619-v1:us-central1:scholar-db'
       
@@ -48,6 +49,7 @@ steps:
       - '--memory=1Gi'
       - '--cpu=1'
       - '--max-instances=5'
+      - '--min-instances=1'
       - '--set-env-vars=NEXT_PUBLIC_API_URL=https://scholar-backend-771064042567-uc.a.run.app'
 
 images:
