@@ -997,35 +997,10 @@ export default function AnalysisResults() {
                                       
                                       {/* Year label - responsive display */}
                                       <div className="text-xs text-gray-600 text-center">
-                                        {(() => {
-                                          const totalYears = Object.keys(data.profile_data.citation_timeline?.yearly_citations || {}).length;
-                                          const yearIndex = Object.keys(data.profile_data.citation_timeline?.yearly_citations || {})
-                                            .sort((a, b) => parseInt(a) - parseInt(b))
-                                            .indexOf(year);
-                                          
-                                          // On mobile (sm and below), show every 2nd or 3rd year to prevent overlap
-                                          if (totalYears > 10) {
-                                            // For many years, show every 3rd year on mobile, every 2nd on tablet
-                                            return (
-                                              <>
-                                                <span className="hidden md:block">{year}</span>
-                                                <span className="hidden sm:block md:hidden">{yearIndex % 2 === 0 ? year : ''}</span>
-                                                <span className="block sm:hidden">{yearIndex % 3 === 0 ? year : ''}</span>
-                                              </>
-                                            );
-                                          } else if (totalYears > 6) {
-                                            // For moderate years, show every 2nd year on mobile
-                                            return (
-                                              <>
-                                                <span className="hidden sm:block">{year}</span>
-                                                <span className="block sm:hidden">{yearIndex % 2 === 0 ? year : ''}</span>
-                                              </>
-                                            );
-                                          } else {
-                                            // For few years, show all
-                                            return year;
-                                          }
-                                        })()}
+                                        <span className="hidden sm:block">{year}</span>
+                                        <span className="block sm:hidden transform -rotate-45 origin-center text-[10px]" style={{ writingMode: 'horizontal-tb' }}>
+                                          {year}
+                                        </span>
                                       </div>
                                     </div>
                                   </div>
