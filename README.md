@@ -15,7 +15,7 @@ A web application for analyzing Google Scholar profiles with metrics and insight
 ## Quick Start
 
 ### Option 1: Use Live Version
-Visit [https://scholar-frontend-771064042567.us-central1.run.app](https://scholar-frontend-771064042567.us-central1.run.app) and enter any Google Scholar profile URL.
+Visit [https://scholar-frontend-optimized-771064042567.us-central1.run.app](https://scholar-frontend-optimized-771064042567.us-central1.run.app) and enter any Google Scholar profile URL.
 
 ### Option 2: Run Locally
 
