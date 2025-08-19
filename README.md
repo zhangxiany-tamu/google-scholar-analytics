@@ -9,7 +9,7 @@ A web application for analyzing Google Scholar profiles with metrics and insight
 - **Research Areas**: Automatic classification using journal and conference databases
 - **Collaboration Networks**: Co-author analysis and partnership patterns
 - **Interactive Charts**: Visual representations of research impact and productivity
-- **High-Speed Caching**: Redis-powered caching for 50x faster repeat analyses
+- **High-Speed Caching**: Intelligent caching for 50x faster repeat analyses
 - **Concurrent Scraping**: Parallel data collection for 2-4x faster initial processing
 
 ## Quick Start
@@ -41,9 +41,8 @@ docker-compose up -d
 
 - **Frontend**: Next.js 15, TypeScript, Tailwind CSS
 - **Backend**: FastAPI, Python 3.11
-- **Caching**: Redis (Google Cloud Memorystore)
-- **Database**: PostgreSQL 
 - **Infrastructure**: Docker, Google Cloud Run, Auto-scaling
+- **Optimization**: Cost-efficient serverless architecture with scale-to-zero
 
 ## Project Structure
 
@@ -60,9 +59,8 @@ docker-compose up -d
 # Frontend
 cd frontend && npm install && npm run dev
 
-# Backend (with Redis for caching)
+# Backend
 cd backend && pip install -r requirements.txt
-docker run -d -p 6379:6379 redis:7-alpine
 uvicorn main:app --reload
 ```
 
